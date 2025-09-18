@@ -1,50 +1,27 @@
+// src/hooks/useMap.js
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
-import { db } from "../firebase";
+import { collection, onSnapshot, addDoc } from "firebase/firestore";
+import { db } from "../firebase.js";
 
 export default function useMap(mapId) {
   const [nodes, setNodes] = useState([]);
-  const [edges, setEdges] = useState([]); // optional for now
 
   useEffect(() => {
     if (!mapId) return;
-
-    // Listen to nodes in real-time
-    const unsubNodes = onSnapshot(
+    const unsub = onSnapshot(
       collection(db, "maps", mapId, "nodes"),
-      (snapshot) => setNodes(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
+      (snap) => {
+        setNodes(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        console.log("Loaded nodes:", loadedNodes);
+        setNodes(loadedNodes);
+      }
     );
-
-    // Listen to edges if needed
-    const unsubEdges = onSnapshot(
-      collection(db, "maps", mapId, "edges"),
-      (snapshot) => setEdges(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
-    );
-
-    return () => {
-      unsubNodes();
-      unsubEdges();
-    };
+    return unsub;
   }, [mapId]);
 
-  const createNode = async (payload) => {
-    await addDoc(collection(db, "maps", mapId, "nodes"), {
-      ...payload,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+  const createNode = async (node) => {
+    await addDoc(collection(db, "maps", mapId, "nodes"), node);
   };
 
-  const updateNode = async (id, patch) => {
-    await updateDoc(doc(db, "maps", mapId, "nodes", id), {
-      ...patch,
-      updatedAt: serverTimestamp()
-    });
-  };
-
-  const deleteNode = async (id) => {
-    await doc(db, "maps", mapId, "nodes", id).delete();
-  };
-
-  return { nodes, edges, createNode, updateNode, deleteNode };
+  return { nodes, createNode };
 }

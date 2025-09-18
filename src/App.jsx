@@ -1,14 +1,11 @@
 import React from "react";
-import MapCanvas from "./components/mapCanvas";
+import MapCanvas from "./components/mapCanvas.jsx";
 
 export default function App() {
-  // For now, we just use a hardcoded mapId
-  const mapId = "test-map";
-
   return (
     <div style={{ padding: 20 }}>
-      <h1>Power Map Prototype</h1>
-      <MapCanvas mapId={mapId} />
+      <h1>Power vs Alignment Map</h1>
+      <MapCanvas mapId="main-map" />
     </div>
   );
 }
