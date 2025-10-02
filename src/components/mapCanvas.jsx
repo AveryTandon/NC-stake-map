@@ -6,21 +6,34 @@ export default function MapCanvas({ mapId }) {
   const [label, setLabel] = useState("");
   const [power, setPower] = useState(1);
   const [alignment, setAlignment] = useState(1);
-  // const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState("");
   const [selectedNode, setSelectedNode] = useState(null);
   const [editedPower, updatePower] = useState(1);
   const [editedAlignment, updateAlignment] = useState(1);
+  const [editedNotes, updateNotes] = useState("");
+  const addNotesRef = useRef(null);
+  const editNotesRef = useRef(null);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
 
   const handleAddNode = () => {
+    if (!label.trim()) {
+      alert("Label is required.");
+      return;
+    }
     createNode({
       label,
       power: Number(power),
-      alignment: Number(alignment)
+      alignment: Number(alignment),
+      notes
     });
     setLabel("");
     setPower(1);
     setAlignment(1);
-    // setNotes("");
+    setNotes("");
+
+    if (addNotesRef.current) {
+      addNotesRef.current.style.height = "auto";
+    }
   };
 
   useEffect(() => {
@@ -33,12 +46,20 @@ export default function MapCanvas({ mapId }) {
   return () => document.removeEventListener("click", handleClickOutside);
 }, []);
 
-useEffect(() => {
-  if (selectedNode) {
-    updatePower(selectedNode.power);
-    updateAlignment(selectedNode.alignment);
-  }
-}, [selectedNode]);
+  useEffect(() => {
+    if (selectedNode) {
+      updatePower(selectedNode.power);
+      updateAlignment(selectedNode.alignment);
+      updateNotes(selectedNode.notes || "");
+      if (editNotesRef.current) {
+        const textarea = editNotesRef.current;
+        textarea.value = selectedNode.notes || "";
+        textarea.style.height = "auto";
+        textarea.style.height = textarea.scrollHeight + "px";
+        setIsEditingNotes(false);
+      }
+    }
+  }, [selectedNode]);
 
   const canvasRef = useRef(null);
   const canvasWidth = 1200;
@@ -46,7 +67,7 @@ useEffect(() => {
   const padding = 50;
   const tickInset = 40;
 
-    // Draw axes with arrows and tick marks
+  // Draw axes with arrows and tick marks
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -124,12 +145,24 @@ useEffect(() => {
           <input placeholder="Label" value={label} onChange={(e) => setLabel(e.target.value)} />
           <div>
           <label style={{ margin: 10 }}>Power: 
-            <input type="number" min="1" max="10" value={power} onChange={(e) => setPower(e.target.value)} style={{ marginLeft: 5 }} />
+          <input type="number" min="1" max="10" value={power} onChange={(e) => setPower(e.target.value)} style={{ marginLeft: 5 }} />
           </label>
           <label style={{ margin: 10 }}>Alignment: 
           <input type="number" min="1" max="10" value={alignment} onChange={(e) => setAlignment(e.target.value)} style={{ marginLeft: 5 }} />
           </label>
-          <button style={{ margin: 10, borderRadius: 5, backgroundColor: "lightblue" }} onClick={handleAddNode}>Add Node</button>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "-15px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", maxWidth: "100%" }}>
+          <label style={{ marginRight: "5px" }}>Notes:</label>
+          <textarea ref={addNotesRef} value={notes}
+            onChange={(e) => {
+                setNotes(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = e.target.scrollHeight + "px";
+              }}
+            style={{ marginLeft: "5px", minHeight: "20px"}} />
+          </div></div>
+          <br />
+          <button className="btn" style={{ backgroundColor: "lightblue", margin: "5px auto" }} onClick={handleAddNode}>Add Node</button>
           </div>
       </div></div>
       </div>
@@ -200,19 +233,30 @@ useEffect(() => {
             />
           </label>
           <br />
-          {/* <label>
-            Notes:
-            <textarea className="notes-box"
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "-15px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", maxWidth: "100%" }}>
+          <label>Notes:</label>
+            <textarea
+              ref={editNotesRef}
               value={editedNotes}
-              onChange={e => updateNotes(e.target.value)}
+              readOnly={!isEditingNotes}
+              onClick={() => setIsEditingNotes(true)}
+              onChange={e => {
+                updateNotes(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = e.target.scrollHeight + "px";
+              }}
+              style={{ marginLeft: 5, marginBottom: 5, minHeight: "20px" }}
             />
-          </label>
-          <br /> */}
+          </div></div>
+          <br />
           <button className="save-btn"
             onClick={() => {
-              updateNode(selectedNode.id, { power: editedPower });
-              updateNode(selectedNode.id, { alignment: editedAlignment });
-              // updateNodeField(selectedNode.id, "notes", editedNotes);
+              updateNode(selectedNode.id, {
+                power: editedPower,
+                alignment: editedAlignment,
+                notes: editedNotes
+              });
               setSelectedNode(null)
             }}
           >
