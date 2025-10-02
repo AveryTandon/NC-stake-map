@@ -86,3 +86,22 @@ h2 {
     height: fit-content;
 
 }
+
+.login-form {
+    display: block;
+    justify-content: center;
+    align-items: center;
+    padding: 200px;
+}
+
+.btn {
+    border: #222;
+    border-radius: 5px;
+    background-color: rgb(210, 193, 243);
+    padding: 6px;
+}
+.btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    background-color: rgb(161, 123, 238);
+}
