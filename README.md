@@ -1,7 +1,7 @@
 # NC Power Map
 
 ## Overview
-A React-based power mapping application for visualizing stakeholder relationships in North Carolina. Users can add, edit, and visualize nodes representing different stakeholders based on their power level (1-10) and alignment with our visions (1-10).
+A React-based power mapping web application for visualizing stakeholder relationships in North Carolina. Users can add, edit, and visualize nodes representing stakeholders, with attributes such as power (1-10) and alignment (1-10). Each node can also have notes, categories, and classifications, enabling detailed mapping of influence networks.
 
 ## Project Architecture
 
@@ -14,26 +14,32 @@ A React-based power mapping application for visualizing stakeholder relationship
 
 ### Key Features
 - User authentication with email/password
-- Interactive canvas-based power mapping
+- Interactive, canvas-based power map visualization
 - Real-time database polling
-- Add/edit/delete nodes with power and alignment attributes
+- Add/edit/delete nodes with multiple attributes
 - Note-taking capability for each node
+- Visual differentiation of node categories using shapes and colors
+- Drag-and-drop node placement on the canvas with responsive updates
 
 ### Project Structure
 ```
 /
-├── src/                          # Frontend React application
+├── src/                         # Frontend React application
 │   ├── components/
-│   │   ├── mapCanvas.jsx        # Main mapping canvas component
-│   │   └── userLogin.jsx        # Login/register form component
+│   │   └── editNodePanel.jsx    # Node editting panel
+│   │   ├── mapCanvas.jsx        # Main mapping canvas
+│   │   └── newNodePanel.jsx     # Node creation panel
+│   │   └── nodeLayer.jsx        # Canvas node rendering and drag logic
+│   │   └── userLogin.jsx        # Login form
 │   ├── hooks/
 │   │   └── useMap.js            # Custom hook for API calls
+│   ├── utils/
+│   │   └── constants.js         # Constant variables
+│   │   └── nodePosition.js      # Node position helper functions
 │   ├── App.jsx                  # Main app component
-│   ├── global.css               # Global styles
-│   └── main.jsx                 # Entry point
-│   ├── firebase.js              # Firebase database connection setup
-├── public/
-│   └── _headers                 # Netlify headers config
+│   ├── firebase.js              # Firebase setup and config
+│   ├── global.css               # Global CSS styles
+│   └── main.jsx                 # React entry point
 ├── index.html
 ├── package.json
 └── vite.config.js               # Vite config with API proxy
@@ -45,7 +51,7 @@ The app requires a Firebase database connection via environment variables.
 
 ### Database Schema
 - **maps**: Power maps owned by users
-- **nodes**: Stakeholder nodes with power/alignment attributes
+- **nodes**: Stakeholder nodes with multiple attributes
 
 ## Development
 
