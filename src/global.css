@@ -6,45 +6,23 @@ body {
   display: flex;
   justify-content: center;
   text-align: center;
+  margin-bottom: 50px;
 }
 
 h1 {
   font-size: 2rem;
 }
-
 h2 {
     font-size: 1.5rem;
 }
 
-.node {
-  width: fit-content;
-  max-width: 80px;
-  max-height: 60px;
-  padding: 5px;
-  background-color: #79c37c;
-  border: 2px solid #2e7d32;
-  border-radius: 5px;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: black;
-  cursor: pointer;
-  font-weight: bold;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  font-size: 14px;
-  line-height: 1.2;
-}
-.node:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-}
-
-.new-node {
+.new-node-panel {
     border: 1px solid black;
     background-color: beige;
     border-radius: 5px;
+    padding: 8px;
+    width: fit-content;
+    align-items: center;
 }
 
 .node-panel {
@@ -53,6 +31,25 @@ h2 {
     border-radius: 8px;
     z-index: 1000;
     padding: 5px;
+}
+
+.legend {
+    position: absolute;
+    top: 100px;
+    right: 80px;
+    display: flex;
+    flex-direction: row;
+    gap: 0.7rem;
+    background: rgb(218, 220, 220);
+    border: 1px solid black;
+    border-radius: 8px;
+    padding: 5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.legend-section {
+  display: flex;
+  flex-direction: column; /* stack items vertically */
+  gap: 0.4rem;
 }
 
 .save-btn {
@@ -99,10 +96,110 @@ h2 {
     border-radius: 5px;
     background-color: rgb(210, 193, 243);
     padding: 6px;
+    color: black;
 }
 .btn:hover {
     transform: scale(1.1);
     border: 1px solid black;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
     background-color: rgb(161, 123, 238);
+    color: white;
+}
+
+.node {
+  width: fit-content;
+  height: fit-content;
+  max-width: 100px;
+  padding: 6px;
+  background-color: lightgray;
+  border-radius: 5px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: black;
+  cursor: pointer;
+  user-select: none;
+  font-weight: bold;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  font-size: 14px;
+  line-height: 1.2;
+}
+.node:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+.node.cloud {
+    aspect-ratio: 1.5;
+    --g: radial-gradient(50% 50%, #000 98%, #0000) no-repeat;
+    mask: var(--g) 100% 100%/30% 60%,var(--g) 70% 0/50% 100%,var(--g) 0 100%/36% 68%,var(--g) 27% 18%/26% 40%,linear-gradient(#000 0 0) bottom/67% 58% no-repeat;
+}
+.node.oval {
+    border-radius: 50% / 30%; 
+}
+.node.rectangle {
+    border-radius: 2px;
+}  
+.node.trapezoid {
+    clip-path: polygon(0% 100%, 17.5% 0%, 82.5% 0%, 100% 100%);
+}
+.node.diamond {
+    clip-path: polygon(50% 0%, 100% 35%, 50% 100%, 0% 35%);
+}
+.node.heart {
+    --_m: radial-gradient(#000 69%,#0000 70%) 84.5%/50%;
+    -webkit-mask-box-image: var(--_m);
+             mask-border: var(--_m);
+    clip-path: polygon(-41% 0,50% 91%, 141% 0);
+}
+.node.star {
+    aspect-ratio: 1;
+    clip-path: polygon(100% 50%,78.98% 57.76%,93.3% 75%,71.21% 71.21%,75% 93.3%,57.76% 78.98%,50% 100%,42.24% 78.98%,25% 93.3%,28.79% 71.21%,6.7% 75%,21.02% 57.76%,0% 50%,21.02% 42.24%,6.7% 25%,28.79% 28.79%,25% 6.7%,42.24% 21.02%,50% 0%,57.76% 21.02%,75% 6.7%,71.21% 28.79%,93.3% 25%,78.98% 42.24%);
+}
+.node.star .label, .node.heart .label {
+  padding: 8px;
+}
+.node.cloud .label {
+  padding: 10px;
+}
+.node.trapezoid .label, .node.rectangle .label, .node.oval .label {
+  padding: 2px;
+}
+.legend-shape {
+  width: 20px;
+  height: 15px;
+  background-color: rgb(80, 80, 80);
+  display: flex;
+  align-items: center;
+}
+.legend-shape.cloud {
+    aspect-ratio: 1.5;
+    --g: radial-gradient(50% 50%, #000 98%, #0000) no-repeat;
+    mask: var(--g) 100% 100%/30% 60%,var(--g) 70% 0/50% 100%,var(--g) 0 100%/36% 68%,var(--g) 27% 18%/26% 40%,linear-gradient(#000 0 0) bottom/67% 58% no-repeat;
+}
+.legend-shape.oval {
+    width: 22px;
+    border-radius: 50% / 30%; 
+}
+.legend-shape.rectangle {
+    width: 22px;
+    border-radius: 2px;
+}  
+.legend-shape.trapezoid {
+    width: 22px;
+    clip-path: polygon(0% 100%, 17.5% 0%, 82.5% 0%, 100% 100%);
+}
+.legend-shape.heart {
+    --_m: radial-gradient(#000 69%,#0000 70%) 84.5%/50%;
+    -webkit-mask-box-image: var(--_m);
+             mask-border: var(--_m);
+    clip-path: polygon(-41% 0,50% 91%, 141% 0);
+}
+.legend-shape.star {
+    aspect-ratio: 1;
+    clip-path: polygon(100% 50%,78.98% 57.76%,93.3% 75%,71.21% 71.21%,75% 93.3%,57.76% 78.98%,50% 100%,42.24% 78.98%,25% 93.3%,28.79% 71.21%,6.7% 75%,21.02% 57.76%,0% 50%,21.02% 42.24%,6.7% 25%,28.79% 28.79%,25% 6.7%,42.24% 21.02%,50% 0%,57.76% 21.02%,75% 6.7%,71.21% 28.79%,93.3% 25%,78.98% 42.24%);
 }

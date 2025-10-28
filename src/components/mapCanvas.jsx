@@ -1,74 +1,34 @@
 import React, { useRef, useState, useEffect } from "react";
 import useMap from "../hooks/useMap.js";
+import NodeLayer from "./nodeLayer.jsx";
+import NewNodePanel from "./newNodePanel.jsx";
+import EditNodePanel from "./editNodePanel.jsx";
+import { CATEGORY_COLORS, CATEGORY_SHAPES } from "../utils/constants.js";
 
 export default function MapCanvas({ mapId }) {
   const { nodes, createNode, updateNode, deleteNode } = useMap(mapId);
-  const [label, setLabel] = useState("");
-  const [power, setPower] = useState(1);
-  const [alignment, setAlignment] = useState(1);
-  const [notes, setNotes] = useState("");
   const [selectedNode, setSelectedNode] = useState(null);
-  const [editedPower, updatePower] = useState(1);
-  const [editedAlignment, updateAlignment] = useState(1);
-  const [editedNotes, updateNotes] = useState("");
-  const addNotesRef = useRef(null);
-  const editNotesRef = useRef(null);
-  const [isEditingNotes, setIsEditingNotes] = useState(false);
-
-  const handleAddNode = () => {
-    if (!label.trim()) {
-      alert("Label is required.");
-      return;
-    }
-    createNode({
-      label,
-      power: Number(power),
-      alignment: Number(alignment),
-      notes
-    });
-    setLabel("");
-    setPower(1);
-    setAlignment(1);
-    setNotes("");
-
-    if (addNotesRef.current) {
-      addNotesRef.current.style.height = "auto";
-    }
-  };
-
-  useEffect(() => {
-  const handleClickOutside = (e) => {
-    if (!e.target.closest(".node-panel") && !e.target.classList.contains("node")) {
-      setSelectedNode(null);
-    }
-  };
-  document.addEventListener("click", handleClickOutside);
-  return () => document.removeEventListener("click", handleClickOutside);
-}, []);
-
-  useEffect(() => {
-    if (selectedNode) {
-      updatePower(selectedNode.power);
-      updateAlignment(selectedNode.alignment);
-      updateNotes(selectedNode.notes || "");
-      if (editNotesRef.current) {
-        const textarea = editNotesRef.current;
-        textarea.value = selectedNode.notes || "";
-        textarea.style.height = "auto";
-        textarea.style.height = textarea.scrollHeight + "px";
-        setIsEditingNotes(false);
-      }
-    }
-  }, [selectedNode]);
-
+  const categories = ["Media", "Social", "State", "Individual", "Other"];
+  const classifications = ["Key Policy, Issue, or Debate", "Opposition Unorganized Group", "Opposition Organized Group", "Progressive Unorganized Group", "Progressive Organized Group", "Decision Maker"];
   const canvasRef = useRef(null);
-  const canvasWidth = 1200;
-  const canvasHeight = 600;
+  const canvasWidth = 1300;
+  const canvasHeight = 770;
   const padding = 50;
   const tickInset = 40;
 
-  // Draw axes with arrows and tick marks
+  // Click outside node panel to deselect node
   useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".node-panel") && !e.target.classList.contains("node")) {
+        setSelectedNode(null);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
+  // Draw axes with arrows and tick marks
+  const drawAxes = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -110,7 +70,7 @@ export default function MapCanvas({ mapId }) {
     ctx.closePath();
     ctx.fill();
 
-    // Draw ticks and labels (1–10)
+    // Ticks and labels
     for (let i = 1; i <= 10; i++) {
       // X ticks
       const x = padding + tickInset + ((i - 1) * (canvasWidth - 2 * padding - tickInset) / 9);
@@ -130,150 +90,81 @@ export default function MapCanvas({ mapId }) {
       ctx.fillText(i, padding - 12, y);
       ctx.textAlign = "center";
     }
+  };
+
+  // Draw axes initially and whenever canvas size changes
+  useEffect(() => {
+    drawAxes();
   }, [canvasWidth, canvasHeight]);
 
   return (
-    <div>
-      <div className="container">
-        <div className="row">
-          <div className="col-md-8 col-sm-12">
-          <p>This power map shows the relationships between different stakeholders in NC. You can add new nodes, 
-            setting their power and alignment on a scale of 1-10. You can also edit an existing node by clicking on it.</p>
-        </div>
-        <div className="col-md-4 col-sm-12"><div className="new-node">
-          <h2>Add a New Node</h2>
-          <input placeholder="Label" value={label} onChange={(e) => setLabel(e.target.value)} />
-          <div>
-          <label style={{ margin: 10 }}>Power: 
-          <input type="number" min="1" max="10" value={power} onChange={(e) => setPower(e.target.value)} style={{ marginLeft: 5 }} />
-          </label>
-          <label style={{ margin: 10 }}>Alignment: 
-          <input type="number" min="1" max="10" value={alignment} onChange={(e) => setAlignment(e.target.value)} style={{ marginLeft: 5 }} />
-          </label>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "-15px" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", maxWidth: "100%" }}>
-          <label style={{ marginRight: "5px" }}>Notes:</label>
-          <textarea ref={addNotesRef} value={notes}
-            onChange={(e) => {
-                setNotes(e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height = e.target.scrollHeight + "px";
-              }}
-            style={{ marginLeft: "5px", minHeight: "20px"}} />
-          </div></div>
-          <br />
-          <button className="btn" style={{ backgroundColor: "lightblue", margin: "5px auto" }} onClick={handleAddNode}>Add Node</button>
-          </div>
-      </div></div>
+    <div className="container">
+      {/* Description */}
+        <p>This power map shows the relationships between different stakeholders in NC. You can add new nodes, 
+          setting their power and alignment on a scale of 1-10. You can also edit an existing node by clicking on it.</p>
+      {/* Add new node button */}
+        <NewNodePanel
+          createNode={createNode}
+          categories={categories}
+          classifications={classifications}
+        />
+      {/* Legend */}
+      <div className="legend">
+        <div className="legend-section">
+          {Object.entries(CATEGORY_COLORS).map(([category, color]) => (
+            <div key={category} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div
+                style={{
+                  width: 14,
+                  height: 14,
+                  backgroundColor: color,
+                  border: "1px solid #8e8e8eff",
+                  borderRadius: "3px",
+                }}
+              />
+              <span>{category}</span>
+            </div>
+          ))} </div>
+          <div className="legend-section">
+          {Object.entries(CATEGORY_SHAPES).map(([category, shape]) => (
+            <div key={category} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div className={`legend-shape ${shape}`}/>
+              <span>{category}</span>
+            </div>
+          ))} </div>
       </div>
-      </div>
-      <div style={{ position: "relative", width: canvasWidth, height: canvasHeight, margin: "0 auto" }}>
+      {/* Canvas & NodeLayer */}
+      <div style={{ position: "relative", width: canvasWidth, height: canvasHeight,  margin: "80px auto 0" }}>
         <h2 style={{ position: "absolute", bottom: -20, left: 160, transform: "translateX(-50%)" }}>Aligned w/ Our Vision</h2>
         <h2 style={{ position: "absolute", bottom: -20, left: 1040, transform: "translateX(-50%)" }}>Top Dog Vision</h2>
         <h2 style={{ position: "absolute", bottom: 80, left: -80, transform: "rotate(-90deg) translateY(50%)" }}>Low Power</h2>
         <h2 style={{ position: "absolute", bottom: canvasHeight - 80, left: -80, transform: "rotate(-90deg) translateY(50%)" }}>High Power</h2>
-      <canvas
+        <canvas
           ref={canvasRef}
           width={canvasWidth}
           height={canvasHeight}
           style={{ position: "absolute", top: 0, left: 0 }}
         />
-
-        {nodes.map(node => {
-          const x = padding + tickInset + (node.alignment - 1) * ((canvasWidth - 2 * padding - tickInset) / 9);
-          const y = canvasHeight - padding - tickInset - (node.power - 1) * ((canvasHeight - 2 * padding - tickInset) / 9);
-          return (
-            <div
-              key={node.id}
-              className="node"
-              style={{ left: x - 15, top: y - 15, position: "absolute" }}
-              title={node.label} 
-              onClick={() => setSelectedNode(node)}
-            >
-              {node.label}
-            </div>
-          );
-        })}
-        {selectedNode && (
-        <div
-          className="node-panel"
-          style={{
-            position: "absolute",
-            top: -10,
-            left: "50%",
-            transform: "translateX(-50%)"
-          }}
-        >
-          <h4>{selectedNode.label}</h4>
-          <label style={{ margin: 5 }}>
-            Power:
-            <input
-              type="number"
-              min="1"
-              max="10"
-              value={editedPower}
-              onChange={e => {
-                updatePower(Number(e.target.value))
-              }}
-              style={{ marginLeft: 5 }}
-            />
-          </label>
-          <br />
-          <label style={{ margin: 7, marginBottom: 10 }}>
-            Alignment:
-            <input
-              type="number"
-              min="1"
-              max="10"
-              value={editedAlignment}
-              onChange={e => {
-                updateAlignment(Number(e.target.value))
-              }}
-              style={{ marginLeft: 5, marginBottom: 5 }}
-            />
-          </label>
-          <br />
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "-15px" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", maxWidth: "100%" }}>
-          <label>Notes:</label>
-            <textarea
-              ref={editNotesRef}
-              value={editedNotes}
-              readOnly={!isEditingNotes}
-              onClick={() => setIsEditingNotes(true)}
-              onChange={e => {
-                updateNotes(e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height = e.target.scrollHeight + "px";
-              }}
-              style={{ marginLeft: 5, marginBottom: 5, minHeight: "20px" }}
-            />
-          </div></div>
-          <br />
-          <button className="save-btn"
-            onClick={() => {
-              updateNode(selectedNode.id, {
-                power: editedPower,
-                alignment: editedAlignment,
-                notes: editedNotes
-              });
-              setSelectedNode(null)
-            }}
-          >
-            Save Changes
-          </button>
-          <button className="del-btn"
-            onClick={() => {
-              if (window.confirm("Are you sure you want to delete this node?")) {
-                deleteNode(selectedNode.id);
-                setSelectedNode(null);
-              }
-            }}
-        >
-          Delete Node
-        </button>
-        </div>
-      )}
+        <NodeLayer
+          nodes={nodes}
+          canvasWidth={canvasWidth}
+          canvasHeight={canvasHeight}
+          padding={padding}
+          setSelectedNode={setSelectedNode}
+          updateNode={updateNode}
+          selectedNode={selectedNode}
+        />
+        <EditNodePanel
+          selectedNode={selectedNode}
+          setSelectedNode={setSelectedNode}
+          updateNode={updateNode}
+          deleteNode={deleteNode}
+          categories={categories}
+          classifications={classifications}
+          canvasWidth={canvasWidth}
+          canvasHeight={canvasHeight}
+          padding={padding}
+        />
       </div>
     </div>
   );
