@@ -1,8 +1,9 @@
 export const CATEGORY_COLORS = {
+  Individual: "lightgreen",
+  Institution: "lightcoral",
   Media: "plum",
   Social: "lightblue",
   State: "chocolate",
-  Individual: "lightgreen",
   Other: "lightyellow",
 };
 

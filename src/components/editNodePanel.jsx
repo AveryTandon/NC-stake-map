@@ -96,10 +96,10 @@ export default function EditNodePanel({ selectedNode, setSelectedNode, updateNod
             Alignment:
             <input
               type="number"
-              min="1"
-              max="10"
+              min="-5"
+              max="5"
               value={editedAlignment}
-              onChange={(e) => editAlignment(Math.max(1, Math.min(10, Number(e.target.value))))}
+              onChange={(e) => editAlignment(Math.max(-5, Math.min(5, Number(e.target.value))))}
               style={{ marginLeft: 5, marginBottom: 5 }}
             />
           </label>

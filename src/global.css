@@ -1,5 +1,4 @@
 body {
-  margin: auto;
   font-family: system-ui, sans-serif;
   background: #fbf5f5;
   color: #222;
@@ -11,6 +10,8 @@ body {
 
 h1 {
   font-size: 2rem;
+  text-align: center;
+  padding-left: 5px;
 }
 h2 {
     font-size: 1.5rem;
@@ -34,12 +35,7 @@ h2 {
 }
 
 .legend {
-    position: absolute;
-    top: 100px;
-    right: 80px;
-    display: flex;
-    flex-direction: row;
-    gap: 0.7rem;
+    margin: 0px 10px 10px;
     background: rgb(218, 220, 220);
     border: 1px solid black;
     border-radius: 8px;
@@ -48,8 +44,10 @@ h2 {
 }
 .legend-section {
   display: flex;
-  flex-direction: column; /* stack items vertically */
-  gap: 0.4rem;
+  flex-direction: row; /* stack items horizontally */
+  gap: 0.8rem;
+  align-items: center;
+  justify-content: center;
 }
 
 .save-btn {
@@ -175,6 +173,7 @@ h2 {
   background-color: rgb(80, 80, 80);
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 .legend-shape.cloud {
     aspect-ratio: 1.5;

@@ -8,12 +8,14 @@ import { CATEGORY_COLORS, CATEGORY_SHAPES } from "../utils/constants.js";
 export default function MapCanvas({ mapId }) {
   const { nodes, createNode, updateNode, deleteNode } = useMap(mapId);
   const [selectedNode, setSelectedNode] = useState(null);
-  const categories = ["Media", "Social", "State", "Individual", "Other"];
+  const categories = ["Individual", "Institution", "Media", "Social", "State", "Other"];
   const classifications = ["Key Policy, Issue, or Debate", "Opposition Unorganized Group", "Opposition Organized Group", "Progressive Unorganized Group", "Progressive Organized Group", "Decision Maker"];
   const canvasRef = useRef(null);
-  const canvasWidth = 1300;
-  const canvasHeight = 770;
-  const padding = 50;
+  const canvasWidth = 1400;
+  const canvasHeight = 780;
+  const bottomPadding = 60;
+  const sidePadding = 80;
+  const padding = 80;
   const tickInset = 40;
 
   // Click outside node panel to deselect node
@@ -37,57 +39,74 @@ export default function MapCanvas({ mapId }) {
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
     ctx.strokeStyle = "black";
     ctx.lineWidth = 2;
-    ctx.font = "12px sans-serif";
     ctx.fillStyle = "black";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
     // X axis
     ctx.beginPath();
-    ctx.moveTo(padding, canvasHeight - padding);
-    ctx.lineTo(canvasWidth - padding + 50, canvasHeight - padding);
+    ctx.moveTo(0, canvasHeight - bottomPadding);
+    ctx.lineTo(canvasWidth, canvasHeight - bottomPadding);
     ctx.stroke();
 
     // X arrow
     ctx.beginPath();
-    ctx.moveTo(canvasWidth - padding + 50, canvasHeight - padding);
-    ctx.lineTo(canvasWidth - padding + 40, canvasHeight - padding - 5);
-    ctx.lineTo(canvasWidth - padding + 40, canvasHeight - padding + 5);
+    ctx.moveTo(canvasWidth, canvasHeight - bottomPadding);
+    ctx.lineTo(canvasWidth - 15, canvasHeight - bottomPadding - 5);
+    ctx.lineTo(canvasWidth - 15, canvasHeight - bottomPadding + 5);
     ctx.closePath();
     ctx.fill();
 
-    // Y axis
+    // Y axis in center of page
+    const yAxisX = canvasWidth / 2;
     ctx.beginPath();
-    ctx.moveTo(padding, canvasHeight - padding);
-    ctx.lineTo(padding, padding - 50);
+    ctx.moveTo(yAxisX, canvasHeight - bottomPadding);
+    ctx.lineTo(yAxisX, 0);
     ctx.stroke();
 
     // Y arrow
     ctx.beginPath();
-    ctx.moveTo(padding, padding - 50);
-    ctx.lineTo(padding - 5, padding - 40);
-    ctx.lineTo(padding + 5, padding - 40);
+    ctx.moveTo(yAxisX, 0);
+    ctx.lineTo(yAxisX - 5, 10);
+    ctx.lineTo(yAxisX + 5, 10);
     ctx.closePath();
     ctx.fill();
 
-    // Ticks and labels
-    for (let i = 1; i <= 10; i++) {
-      // X ticks
-      const x = padding + tickInset + ((i - 1) * (canvasWidth - 2 * padding - tickInset) / 9);
-      ctx.beginPath();
-      ctx.moveTo(x, canvasHeight - padding);
-      ctx.lineTo(x, canvasHeight - padding + 10);
-      ctx.stroke();
-      ctx.fillText(i, x, canvasHeight - padding + 20);
+    // X axis labels
+    ctx.font = "20px sans-serif";
+    ctx.fillText("People Power Vision", 100, canvasHeight - bottomPadding + 40);
+    ctx.fillText("Billionaire Vision", canvasWidth - sidePadding, canvasHeight - bottomPadding + 40);
 
-      // Y ticks
-      const y = canvasHeight - padding - tickInset - ((i - 1) * (canvasHeight - 2 * padding - tickInset) / 9);
+    // Y axis labels
+    ctx.save();
+    ctx.translate(yAxisX - 20, 40);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("Power", 0, 0);
+    ctx.restore();
+
+    // X tick marks and values
+    const xRange = canvasWidth - 2 * sidePadding;
+    for (let i = -5; i <= 5; i++) {
+      const x = sidePadding + (i + 5) * (xRange / 10);
       ctx.beginPath();
-      ctx.moveTo(padding, y);
-      ctx.lineTo(padding - 8, y);
+      ctx.moveTo(x, canvasHeight - bottomPadding);
+      ctx.lineTo(x, canvasHeight - bottomPadding + 8);
       ctx.stroke();
-      ctx.textAlign = "right";
-      ctx.fillText(i, padding - 12, y);
+      ctx.font = "12px sans-serif";
+      ctx.fillText(i, x, canvasHeight - bottomPadding + 18);
+    }
+
+    // Y tick marks and values
+    const yRange = canvasHeight - bottomPadding;
+    for (let i = 1; i <= 10; i++) {
+      const y = canvasHeight - bottomPadding - tickInset - ((i - 1) * (yRange / 10));
+      ctx.beginPath();
+      ctx.moveTo(yAxisX, y);
+      ctx.lineTo(yAxisX + 8, y);
+      ctx.stroke();
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(i, yAxisX + 15, y);
       ctx.textAlign = "center";
     }
   };
@@ -98,47 +117,20 @@ export default function MapCanvas({ mapId }) {
   }, [canvasWidth, canvasHeight]);
 
   return (
-    <div className="container">
+    <div>
       {/* Description */}
-        <p>This power map shows the relationships between different stakeholders in NC. You can add new nodes, 
-          setting their power and alignment on a scale of 1-10. You can also edit an existing node by clicking on it.</p>
+      <p style={{padding: "0px 10px"}}>This power map shows the relationships between different stakeholders. You can add new nodes, 
+        setting their power and alignment according to the scales below. You can also edit an existing node by clicking on it.</p>
+      
       {/* Add new node button */}
-        <NewNodePanel
-          createNode={createNode}
-          categories={categories}
-          classifications={classifications}
-        />
-      {/* Legend */}
-      <div className="legend">
-        <div className="legend-section">
-          {Object.entries(CATEGORY_COLORS).map(([category, color]) => (
-            <div key={category} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <div
-                style={{
-                  width: 14,
-                  height: 14,
-                  backgroundColor: color,
-                  border: "1px solid #8e8e8eff",
-                  borderRadius: "3px",
-                }}
-              />
-              <span>{category}</span>
-            </div>
-          ))} </div>
-          <div className="legend-section">
-          {Object.entries(CATEGORY_SHAPES).map(([category, shape]) => (
-            <div key={category} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <div className={`legend-shape ${shape}`}/>
-              <span>{category}</span>
-            </div>
-          ))} </div>
-      </div>
+      <NewNodePanel
+        createNode={createNode}
+        categories={categories}
+        classifications={classifications}
+      />
+    
       {/* Canvas & NodeLayer */}
-      <div style={{ position: "relative", width: canvasWidth, height: canvasHeight,  margin: "80px auto 0" }}>
-        <h2 style={{ position: "absolute", bottom: -20, left: 160, transform: "translateX(-50%)" }}>Aligned w/ Our Vision</h2>
-        <h2 style={{ position: "absolute", bottom: -20, left: 1040, transform: "translateX(-50%)" }}>Top Dog Vision</h2>
-        <h2 style={{ position: "absolute", bottom: 80, left: -80, transform: "rotate(-90deg) translateY(50%)" }}>Low Power</h2>
-        <h2 style={{ position: "absolute", bottom: canvasHeight - 80, left: -80, transform: "rotate(-90deg) translateY(50%)" }}>High Power</h2>
+      <div style={{ position: "relative", width: canvasWidth, height: canvasHeight, margin: "10px 20px" }}>
         <canvas
           ref={canvasRef}
           width={canvasWidth}
@@ -165,6 +157,32 @@ export default function MapCanvas({ mapId }) {
           canvasHeight={canvasHeight}
           padding={padding}
         />
+      </div>
+      
+      {/* Legend */}
+      <div className="legend">
+        <div className="legend-section">
+        {Object.entries(CATEGORY_COLORS).map(([category, color]) => (
+          <div key={category} style={{ display: "flex", alignItems: "center", gap: "3px", marginBottom: "4px" }}>
+            <div
+              style={{
+                width: 14,
+                height: 14,
+                backgroundColor: color,
+                border: "1px solid #8e8e8eff",
+                borderRadius: "3px",
+              }}
+            />
+            <span>{category}</span>
+          </div>
+        ))} </div>
+        <div className="legend-section">
+        {Object.entries(CATEGORY_SHAPES).map(([category, shape]) => (
+          <div key={category} style={{ display: "flex", textAlign: "left", gap: "3px", alignItems: "center" }}>
+            <div className={`legend-shape ${shape}`} />
+            <span>{category}</span>
+          </div>
+        ))} </div>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ export default function App() {
   return (
     <div>
       {isLoggedIn ? (
-        <div style={{ padding: 20 }}>
+        <div style={{ padding: 10 }}>
         <h1>Power Mapping in NC</h1>
         <MapCanvas mapId="main-map" />
         </div>

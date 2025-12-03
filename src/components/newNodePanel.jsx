@@ -74,8 +74,8 @@ export default function NewNodePanel({ createNode, categories, classifications }
                 Alignment:
                 <input
                 type="number"
-                min="1"
-                max="10"
+                min="-5"
+                max="5"
                 value={alignment}
                 onChange={e => setAlignment(e.target.value)}
                 style={{ marginLeft: 5 }}

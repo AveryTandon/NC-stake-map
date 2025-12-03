@@ -29,7 +29,7 @@ export function getNodePosition(node, existingRects, canvasWidth, canvasHeight, 
   const tickInset = 40;
 
   // Base x/y according to alignment (x) and power (y)
-  const xBase = padding + tickInset + ((node.alignment - 1) * (canvasWidth - 2 * padding - tickInset) / 9);
+  const xBase = padding + tickInset + ((node.alignment + 5) * (canvasWidth - 2 * padding - tickInset) / 10);
   const yBase = canvasHeight - padding - tickInset - ((node.power - 1) * (canvasHeight - 2 * padding - tickInset) / 9);
 
   // Start with deterministic jitter
@@ -61,12 +61,12 @@ export function getNodePosition(node, existingRects, canvasWidth, canvasHeight, 
 
 export function getPowerAlignmentFromPosition(x, y, canvasWidth, canvasHeight, padding, tickInset = 40) {
   // alignment (x-axis)
-  const alignment = 1 + ((x - padding - tickInset) * 9) / (canvasWidth - 2 * padding - tickInset);
+  const alignment = -5 + ((x - padding - tickInset) * 10) / (canvasWidth - 2 * padding - tickInset);
   // power (y-axis)
   const power = 1 + ((canvasHeight - padding - tickInset - y) * 9) / (canvasHeight - 2 * padding - tickInset);
 
   return {
-    alignment: Math.min(Math.max(alignment, 1), 10),
+    alignment: Math.min(Math.max(alignment, -5), 5),
     power: Math.min(Math.max(power, 1), 10)
   };
 }
