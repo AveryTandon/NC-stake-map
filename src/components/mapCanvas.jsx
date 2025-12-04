@@ -13,9 +13,8 @@ export default function MapCanvas({ mapId }) {
   const canvasRef = useRef(null);
   const canvasWidth = 1400;
   const canvasHeight = 780;
-  const bottomPadding = 60;
   const sidePadding = 80;
-  const padding = 80;
+  const bottomPadding = 60;
   const tickInset = 40;
 
   // Click outside node panel to deselect node
@@ -123,11 +122,13 @@ export default function MapCanvas({ mapId }) {
         setting their power and alignment according to the scales below. You can also edit an existing node by clicking on it.</p>
       
       {/* Add new node button */}
-      <NewNodePanel
-        createNode={createNode}
-        categories={categories}
-        classifications={classifications}
-      />
+      <div style={{ display: "flex", justifyContent: "center", margin: "10px 0" }}>
+        <NewNodePanel
+          createNode={createNode}
+          categories={categories}
+          classifications={classifications}
+        />
+      </div>
     
       {/* Canvas & NodeLayer */}
       <div style={{ position: "relative", width: canvasWidth, height: canvasHeight, margin: "10px 20px" }}>
@@ -141,7 +142,9 @@ export default function MapCanvas({ mapId }) {
           nodes={nodes}
           canvasWidth={canvasWidth}
           canvasHeight={canvasHeight}
-          padding={padding}
+          sidePadding={sidePadding}
+          bottomPadding={bottomPadding}
+          tickInset={tickInset}
           setSelectedNode={setSelectedNode}
           updateNode={updateNode}
           selectedNode={selectedNode}
@@ -155,7 +158,9 @@ export default function MapCanvas({ mapId }) {
           classifications={classifications}
           canvasWidth={canvasWidth}
           canvasHeight={canvasHeight}
-          padding={padding}
+          sidePadding={sidePadding}
+          bottomPadding={bottomPadding}
+          tickInset={tickInset}
         />
       </div>
       

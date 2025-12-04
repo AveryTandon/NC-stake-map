@@ -1,5 +1,5 @@
 // Deterministic offset for nodes with same power/alignment
-function getStableOffset(nodeId, maxRadius = 20) {
+function getStableOffset(nodeId, maxRadius = 5) {
   // Make a numeric seed from node id string
   let hash = 0;
   const str = String(nodeId);
@@ -25,45 +25,59 @@ function overlaps(rect1, rect2) {
 }
 
 // Get node position in pixels on the canvas
-export function getNodePosition(node, existingRects, canvasWidth, canvasHeight, padding, width, height) {
-  const tickInset = 40;
-
+export function getNodePosition(node, existingRects, canvasWidth, canvasHeight, sidePadding, bottomPadding, tickInset, width, height) {
   // Base x/y according to alignment (x) and power (y)
-  const xBase = padding + tickInset + ((node.alignment + 5) * (canvasWidth - 2 * padding - tickInset) / 10);
-  const yBase = canvasHeight - padding - tickInset - ((node.power - 1) * (canvasHeight - 2 * padding - tickInset) / 9);
+  // X axis: matches tick mark positioning exactly (no tickInset offset)
+  const xRange = canvasWidth - 2 * sidePadding;
+  const xBase = sidePadding + ((node.alignment + 5) * (xRange / 10));
+  // Y axis: matches tick mark positioning - uses bottomPadding for bottom, range is (canvasHeight - bottomPadding)
+  const yRange = canvasHeight - bottomPadding;
+  const yBase = canvasHeight - bottomPadding - tickInset - ((node.power - 1) * (yRange / 10));
 
-  // Start with deterministic jitter
-  let { dx, dy } = getStableOffset(node.id);
+  // Start centered on tick mark (no jitter initially)
+  let x = xBase;
+  let y = yBase;
 
-  let x = xBase + dx;
-  let y = yBase + dy;
+  // Check if there are any collisions at the base position
+  const baseRect = { x: x - width / 2, y: y - height / 2, width, height };
+  const hasCollision = existingRects.some((r) => overlaps(baseRect, r));
 
-  // Try to avoid overlaps by spiraling out if needed
-  let spiralStep = 5;
-  let spiralAngle = 0;
-  const spiralIncrement = Math.PI / 6; // 30 degrees per iteration
-  const maxAttempts = 100;
+  // Only apply jitter/spiraling if there are collisions
+  if (hasCollision && existingRects.length > 0) {
+    // Start with deterministic jitter for nodes at same position
+    let { dx, dy } = getStableOffset(node.id);
+    x = xBase + dx;
+    y = yBase + dy;
 
-  let attempts = 0;
-  while (
-    existingRects.some((r) => overlaps({ x, y, width, height }, r)) &&
-    attempts < maxAttempts
-  ) {
-    spiralAngle += spiralIncrement;
-    const radius = spiralStep * (attempts + 1);
-    x = xBase + radius * Math.cos(spiralAngle);
-    y = yBase + radius * Math.sin(spiralAngle);
-    attempts++;
+    // Try to avoid overlaps by spiraling out if needed
+    let spiralStep = 2;
+    let spiralAngle = 0;
+    const spiralIncrement = Math.PI / 6; // 30 degrees per iteration
+    const maxAttempts = 100;
+
+    let attempts = 0;
+    while (
+      existingRects.some((r) => overlaps({ x: x - width / 2, y: y - height / 2, width, height }, r)) &&
+      attempts < maxAttempts
+    ) {
+      spiralAngle += spiralIncrement;
+      const radius = spiralStep * (attempts + 1);
+      x = xBase + radius * Math.cos(spiralAngle);
+      y = yBase + radius * Math.sin(spiralAngle);
+      attempts++;
+    }
   }
 
   return { x, y };
 }
 
-export function getPowerAlignmentFromPosition(x, y, canvasWidth, canvasHeight, padding, tickInset = 40) {
-  // alignment (x-axis)
-  const alignment = -5 + ((x - padding - tickInset) * 10) / (canvasWidth - 2 * padding - tickInset);
-  // power (y-axis)
-  const power = 1 + ((canvasHeight - padding - tickInset - y) * 9) / (canvasHeight - 2 * padding - tickInset);
+export function getPowerAlignmentFromPosition(x, y, canvasWidth, canvasHeight, sidePadding, bottomPadding, tickInset) {
+  // alignment (x-axis) - matches tick mark calculation (no tickInset offset)
+  const xRange = canvasWidth - 2 * sidePadding;
+  const alignment = -5 + ((x - sidePadding) * 10) / xRange;
+  // power (y-axis) - matches tick mark calculation
+  const yRange = canvasHeight - bottomPadding;
+  const power = 1 + ((canvasHeight - bottomPadding - tickInset - y) * 10) / yRange;
 
   return {
     alignment: Math.min(Math.max(alignment, -5), 5),

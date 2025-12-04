@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 import { getNodePosition, getPowerAlignmentFromPosition } from "../utils/nodePosition.js";
 import { CATEGORY_COLORS, CATEGORY_SHAPES } from "../utils/constants.js";
 
-export default function NodeLayer({ nodes, canvasWidth, canvasHeight, padding, setSelectedNode, updateNode, selectedNode }) {
+export default function NodeLayer({ nodes, canvasWidth, canvasHeight, sidePadding, bottomPadding, tickInset, setSelectedNode, updateNode, selectedNode }) {
   const nodeRefs = useRef({});
   const canvasRef = useRef(null);
   const [nodeSizes, setNodeSizes] = useState({});
@@ -13,20 +13,36 @@ export default function NodeLayer({ nodes, canvasWidth, canvasHeight, padding, s
   // Calculate initial positions (only when nodes change, not during drag)
   const calculateInitialPositions = useCallback(() => {
     const positions = {};
-    nodes.forEach(node => {
+    const existingRects = [];
+    
+    // Sort nodes by id for deterministic ordering
+    const sortedNodes = [...nodes].sort((a, b) => a.id.localeCompare(b.id));
+    
+    sortedNodes.forEach(node => {
       const { width = 50, height = 20 } = nodeSizes[node.id] || {};
-      positions[node.id] = getNodePosition(
+      const pos = getNodePosition(
         node, 
-        [], // Don't check for collisions during initial positioning
+        existingRects, // Check collisions against already-positioned nodes
         canvasWidth, 
         canvasHeight, 
-        padding, 
+        sidePadding,
+        bottomPadding,
+        tickInset,
         width, 
         height
       );
+      positions[node.id] = pos;
+      
+      // Add this node's rect to existingRects for collision detection
+      existingRects.push({
+        x: pos.x - width / 2,
+        y: pos.y - height / 2,
+        width,
+        height
+      });
     });
     return positions;
-  }, [nodes, canvasWidth, canvasHeight, padding, nodeSizes]);
+  }, [nodes, canvasWidth, canvasHeight, sidePadding, bottomPadding, tickInset, nodeSizes]);
 
   const [positions, setPositions] = useState(calculateInitialPositions());
 
@@ -100,7 +116,9 @@ export default function NodeLayer({ nodes, canvasWidth, canvasHeight, padding, s
         pos.y, 
         canvasWidth, 
         canvasHeight, 
-        padding
+        sidePadding,
+        bottomPadding,
+        tickInset
       );
       
       // Create updated node with new position data
@@ -126,7 +144,7 @@ export default function NodeLayer({ nodes, canvasWidth, canvasHeight, padding, s
       setIsDragging(false);
       setDraggingNode(null);
     }
-  }, [isDragging, draggingNode, nodes, positions, canvasWidth, canvasHeight, padding, updateNode, setSelectedNode]);
+  }, [isDragging, draggingNode, nodes, positions, canvasWidth, canvasHeight, sidePadding, bottomPadding, tickInset, updateNode, setSelectedNode]);
 
   // Add event listeners for dragging
   useEffect(() => {

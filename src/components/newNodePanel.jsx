@@ -50,16 +50,16 @@ export default function NewNodePanel({ createNode, categories, classifications }
       )}
 
       {showPanel && (
-        <div style={{display: "flex", justifyContent: "center"}}>
         <div className="new-node-panel">
             <h2>Add a New Node</h2>
             <input
                 placeholder="Label"
                 value={label}
                 onChange={e => setLabel(e.target.value)}
+                style={{ marginBottom: "8px" }}
             />
-            <br />
-            <label style={{ margin: 10 }}>
+            <div style={{ display: "flex", gap: "10px", marginBottom: "8px", alignItems: "center" }}>
+            <label style={{ margin: 0, display: "flex", alignItems: "center", gap: "5px" }}>
                 Power:
                 <input
                 type="number"
@@ -67,10 +67,10 @@ export default function NewNodePanel({ createNode, categories, classifications }
                 max="10"
                 value={power}
                 onChange={e => setPower(e.target.value)}
-                style={{ marginLeft: 5 }}
+                style={{ margin: 0 }}
                 />
             </label>
-            <label style={{ margin: 10 }}>
+            <label style={{ margin: 0, display: "flex", alignItems: "center", gap: "5px" }}>
                 Alignment:
                 <input
                 type="number"
@@ -78,36 +78,44 @@ export default function NewNodePanel({ createNode, categories, classifications }
                 max="5"
                 value={alignment}
                 onChange={e => setAlignment(e.target.value)}
-                style={{ marginLeft: 5 }}
+                style={{ margin: 0 }}
                 />
             </label>
-            <br />
-            <label style={{ margin: 10 }}>Category:</label>
+            </div>
+            <div style={{ marginBottom: "8px" }}>
+            <label style={{ margin: 0, display: "flex", alignItems: "center", gap: "5px" }}>
+              Category:
             <select
               value={category}
               onChange={e => setCategory(e.target.value)}
-              style={{ marginLeft: 5 }}
+              style={{ margin: 0 }}
             >
               <option value="">--Choose Category--</option>
               {categories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
-            < br />
-            <label style={{ margin: 10 }}>Classification:</label>
-            <select
+            </label>
+            </div>
+            <div style={{ marginBottom: "8px" }}>
+            <label style={{ margin: 0, display: "flex", alignItems: "center", gap: "5px" }}>
+              Classification:
+              <select
               value={classification}
               onChange={e => setClassification(e.target.value)}
-              style={{ marginLeft: 5 }}
-            >
-              <option value="">--Choose Classification--</option>
+              style={{ margin: 0 }}
+              >
+              <option value="">-----Choose Classification-----</option>
               {classifications.map(clas => (
                 <option key={clas} value={clas}>{clas}</option>
               ))}
             </select>
-            < br />
-            <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
-                <label style={{ marginRight: 5 }}>Notes:</label>
+            </label>
+            </div>
+            <div style={{ marginBottom: "8px", width: "100%" }}>
+                <label style={{ margin: 0, display: "flex", alignItems: "flex-start", gap: "5px"}}>
+                  Notes:
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
                 <textarea
                 ref={addNotesRef}
                 value={notes}
@@ -119,12 +127,11 @@ export default function NewNodePanel({ createNode, categories, classifications }
                 style={{ minHeight: 20 }}
                 />
             </div>
-            <br />
-            <button className="btn btn-success" onClick={handleAddNode}>
-            Add Node
-            </button>
-            <button
-            className="btn btn-secondary"
+            </label>
+            </div>
+            <div style={{ display: "flex", gap: "5px", justifyContent: "center" }}>
+            <button className="btn btn-success" onClick={handleAddNode}>Add Node</button>
+            <button className="btn btn-secondary"
             onClick={() => {
                 setShowPanel(false)
                 setLabel("");
@@ -134,10 +141,7 @@ export default function NewNodePanel({ createNode, categories, classifications }
                 setClassification("");
                 setNotes("");
             }}
-            style={{ marginLeft: 5 }}
-            >
-            Cancel
-            </button>
+            style={{ marginLeft: 5 }}>Cancel</button>
         </div>
         </div>
       )}
