@@ -1,10 +1,10 @@
 export const CATEGORY_COLORS = {
   Individual: "lightgreen",
-  Institution: "lightcoral",
-  Media: "plum",
-  Social: "lightblue",
-  State: "chocolate",
-  Other: "lightyellow",
+  Institution: "violet",
+  Media: "lightpink",
+  Social: "lightskyblue",
+  State: "sandybrown",
+  Other: "khaki",
 };
 
 export const CATEGORY_SHAPES = {

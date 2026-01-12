@@ -8,6 +8,7 @@ import { CATEGORY_COLORS, CATEGORY_SHAPES } from "../utils/constants.js";
 export default function MapCanvas({ mapId }) {
   const { nodes, createNode, updateNode, deleteNode } = useMap(mapId);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [expandedStack, setExpandedStack] = useState(null); // Position key of expanded stack
   const categories = ["Individual", "Institution", "Media", "Social", "State", "Other"];
   const classifications = ["Key Policy, Issue, or Debate", "Opposition Unorganized Group", "Opposition Organized Group", "Progressive Unorganized Group", "Progressive Organized Group", "Decision Maker"];
   const canvasRef = useRef(null);
@@ -17,16 +18,8 @@ export default function MapCanvas({ mapId }) {
   const bottomPadding = 60;
   const tickInset = 40;
 
-  // Click outside node panel to deselect node
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (!e.target.closest(".node-panel") && !e.target.classList.contains("node")) {
-        setSelectedNode(null);
-      }
-    };
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, []);
+  // Note: Click outside handling is now done in editNodePanel.jsx
+  // This allows it to check for unsaved changes before closing
 
   // Draw axes with arrows and tick marks
   const drawAxes = () => {
@@ -115,6 +108,30 @@ export default function MapCanvas({ mapId }) {
     drawAxes();
   }, [canvasWidth, canvasHeight]);
 
+  // Sync selectedNode with nodes array when it updates (e.g., after drag completes and Firestore updates)
+  // This ensures the edit panel always shows the latest power/alignment values
+  useEffect(() => {
+    if (selectedNode) {
+      const updatedNode = nodes.find(n => n.id === selectedNode.id);
+      if (updatedNode) {
+        // Only update if power or alignment changed to avoid unnecessary re-renders
+        if (updatedNode.power !== selectedNode.power || updatedNode.alignment !== selectedNode.alignment) {
+          setSelectedNode(prev => ({
+            ...prev,
+            power: updatedNode.power,
+            alignment: updatedNode.alignment,
+            // Preserve other fields that might have been set (like _screenX, _screenY)
+            category: updatedNode.category,
+            classification: updatedNode.classification,
+            notes: updatedNode.notes,
+            label: updatedNode.label
+          }));
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes]);
+
   return (
     <div>
       {/* Description */}
@@ -123,11 +140,11 @@ export default function MapCanvas({ mapId }) {
       
       {/* Add new node button */}
       <div style={{ display: "flex", justifyContent: "center", margin: "10px 0" }}>
-        <NewNodePanel
-          createNode={createNode}
-          categories={categories}
-          classifications={classifications}
-        />
+      <NewNodePanel
+        createNode={createNode}
+        categories={categories}
+        classifications={classifications}
+      />
       </div>
     
       {/* Canvas & NodeLayer */}
@@ -148,6 +165,8 @@ export default function MapCanvas({ mapId }) {
           setSelectedNode={setSelectedNode}
           updateNode={updateNode}
           selectedNode={selectedNode}
+          expandedStack={expandedStack}
+          setExpandedStack={setExpandedStack}
         />
         <EditNodePanel
           selectedNode={selectedNode}
@@ -161,6 +180,8 @@ export default function MapCanvas({ mapId }) {
           sidePadding={sidePadding}
           bottomPadding={bottomPadding}
           tickInset={tickInset}
+          nodes={nodes}
+          expandedStack={expandedStack}
         />
       </div>
       
@@ -183,11 +204,35 @@ export default function MapCanvas({ mapId }) {
         ))} </div>
         <div className="legend-section">
         {Object.entries(CATEGORY_SHAPES).map(([category, shape]) => (
-          <div key={category} style={{ display: "flex", textAlign: "left", gap: "3px", alignItems: "center" }}>
+          <div key={category} style={{ display: "flex", textAlign: "left", gap: "3px", alignItems: "center", marginBottom: "4px" }}>
             <div className={`legend-shape ${shape}`} />
             <span>{category}</span>
           </div>
         ))} </div>
+        <div className="legend-section">
+          <div style={{ display: "flex", alignItems: "center", gap: "3px", marginBottom: "4px" }}>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                backgroundColor: "#DC143C",
+                color: "white",
+                borderRadius: "50%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                fontWeight: "bold",
+                lineHeight: "1"
+              }}
+            >
+              <div style={{ fontSize: "11px" }}>2</div>
+              <div style={{ fontSize: "8px", marginTop: "-2px" }}>←→</div>
+            </div>
+            <span>Click number badge or any stacked node to expand</span>
+          </div>
+        </div>
       </div>
     </div>
   );

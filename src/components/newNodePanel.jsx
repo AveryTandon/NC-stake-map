@@ -11,22 +11,43 @@ export default function NewNodePanel({ createNode, categories, classifications }
   const addNotesRef = useRef(null);
 
   const handleAddNode = () => {
+    // Validate all required fields
+    const errors = [];
+    
     if (!label.trim()) {
-      alert("Label is required.");
-      return;
+      errors.push("Label is required");
     }
+    
+    const powerNum = Number(power);
+    if (isNaN(powerNum) || powerNum < 1 || powerNum > 10) {
+      errors.push("Power must be a number between 1 and 10");
+    }
+    
+    const alignmentNum = Number(alignment);
+    if (isNaN(alignmentNum) || alignmentNum < -5 || alignmentNum > 5) {
+      errors.push("Alignment must be a number between -5 and 5");
+    }
+    
     if (!category.trim()) {
-      alert("Category is required.");
+      errors.push("Category is required");
+    }
+    
+    if (!classification.trim()) {
+      errors.push("Classification is required");
+    }
+    
+    if (errors.length > 0) {
+      alert("Please fix the following errors:\n\n" + errors.join("\n"));
       return;
     }
 
     createNode({
-      label,
-      power: Number(power),
-      alignment: Number(alignment),
-      category,
-      classification,
-      notes
+      label: label.trim(),
+      power: powerNum,
+      alignment: alignmentNum,
+      category: category.trim(),
+      classification: classification.trim(),
+      notes: notes.trim()
     });
 
     // Reset form

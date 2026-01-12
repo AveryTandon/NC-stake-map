@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { getNodePosition } from "../utils/nodePosition.js";
 
-export default function EditNodePanel({ selectedNode, setSelectedNode, updateNode, deleteNode, categories, classifications, canvasWidth, canvasHeight, sidePadding, bottomPadding, tickInset }) {
-    const [coords, setCoords] = useState({ top: 0, left: 0, positionBelow: false });
+export default function EditNodePanel({ selectedNode, setSelectedNode, updateNode, deleteNode, categories, classifications, canvasWidth, canvasHeight, sidePadding, bottomPadding, tickInset, nodes, expandedStack }) {
+    const [coords, setCoords] = useState({ top: 0, left: 0, positionBelow: true });
     const panelWidth = 325;
     const [editedPower, editPower] = useState(1);
     const [editedAlignment, editAlignment] = useState(1);
@@ -13,6 +13,33 @@ export default function EditNodePanel({ selectedNode, setSelectedNode, updateNod
     const [notesExpanded, setNotesExpanded] = useState(false);
     const editNotesRef = useRef(null);
     const maxNotesHeight = 180; // Maximum height for notes box in pixels
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+    // Helper function to calculate expanded position (same logic as nodeLayer)
+    const getExpandedPosition = (basePos, index, totalNodes) => {
+        if (totalNodes <= 1) return basePos;
+        
+        const baseRadius = 55;
+        const radius = totalNodes > 4 ? baseRadius + (totalNodes - 4) * 20 : baseRadius;
+        
+        const angleStep = (2 * Math.PI) / totalNodes;
+        const angle = index * angleStep;
+        
+        return {
+            x: basePos.x + radius * Math.cos(angle),
+            y: basePos.y + radius * Math.sin(angle)
+        };
+    };
+
+    // Helper function to check if two rectangles overlap
+    const rectanglesOverlap = (rect1, rect2) => {
+        return !(
+            rect1.x + rect1.width < rect2.x ||
+            rect1.x > rect2.x + rect2.width ||
+            rect1.y + rect1.height < rect2.y ||
+            rect1.y > rect2.y + rect2.height
+        );
+    };
 
     useEffect(() => {
         if (!selectedNode) return;
@@ -24,6 +51,7 @@ export default function EditNodePanel({ selectedNode, setSelectedNode, updateNod
         editNotes(selectedNode.notes || "");
         setIsEditingNotes(false);
         setNotesExpanded(false);
+        setHasUnsavedChanges(false);
         
         // Auto-expand notes box to show full content when panel opens
         setTimeout(() => {
@@ -37,8 +65,20 @@ export default function EditNodePanel({ selectedNode, setSelectedNode, updateNod
                 setNotesExpanded(scrollHeight > maxNotesHeight);
             }
         }, 0);
-    
-        // Calculate panel position above node
+    }, [selectedNode?.id, selectedNode?.category, selectedNode?.classification, selectedNode?.notes]);
+
+    // Update power and alignment values whenever selectedNode changes (including after drag)
+    useEffect(() => {
+        if (!selectedNode) return;
+        
+        editPower(Math.round(selectedNode.power * 10) / 10);
+        editAlignment(Math.round(selectedNode.alignment * 10) / 10);
+    }, [selectedNode?.power, selectedNode?.alignment]);
+
+    // Calculate panel position
+    useEffect(() => {
+        if (!selectedNode) return;
+
         let nodePos;
         if (selectedNode._screenX && selectedNode._screenY) {
             nodePos = { x: selectedNode._screenX, y: selectedNode._screenY };
@@ -51,35 +91,123 @@ export default function EditNodePanel({ selectedNode, setSelectedNode, updateNod
             sidePadding,
             bottomPadding,
             tickInset,
-            50,
-            20
+            60,
+            24
             );
         }
 
-        let left = nodePos.x;
-        const panelHeight = 200; // Updated for compact layout
+        const panelHeight = 200;
+        const gap = 30; // Gap between node and panel
+        const nodeWidth = 60;
+        const nodeHeight = 24;
         
-        // Position panel below node if power > 7, otherwise above
-        const positionBelow = selectedNode.power > 7;
-        let top;
+        // Check if selected node is in an expanded cluster
+        const positionKey = `${selectedNode.power},${selectedNode.alignment}`;
+        const isInExpandedCluster = expandedStack === positionKey;
         
-        if (positionBelow) {
-            // Position below node: top is the top of the panel
-            top = nodePos.y + 40; // Add some space below node
-            // Ensure panel doesn't go below canvas
-            top = Math.min(top, canvasHeight - panelHeight);
-        } else {
-            // Position above node: top is the bottom of panel (due to translate(-50%, -100%))
-            top = nodePos.y - 40; // Small gap above node
-            // Ensure panel doesn't go above canvas
-            top = Math.max(panelHeight, top);
+        // Calculate cluster node positions if in an expanded cluster
+        const clusterNodeRects = [];
+        if (isInExpandedCluster) {
+            // Get all nodes in this cluster
+            const clusterNodes = nodes.filter(n => 
+                n.power === selectedNode.power && n.alignment === selectedNode.alignment
+            ).sort((a, b) => a.id.localeCompare(b.id));
+            
+            // Calculate base position for the cluster
+            const basePos = getNodePosition(
+                selectedNode,
+                [],
+                canvasWidth,
+                canvasHeight,
+                sidePadding,
+                bottomPadding,
+                tickInset,
+                nodeWidth,
+                nodeHeight
+            );
+            
+            // Calculate expanded positions for all nodes in cluster
+            clusterNodes.forEach((node, index) => {
+                const expandedPos = getExpandedPosition(basePos, index, clusterNodes.length);
+                clusterNodeRects.push({
+                    x: expandedPos.x - nodeWidth / 2,
+                    y: expandedPos.y - nodeHeight / 2,
+                    width: nodeWidth,
+                    height: nodeHeight
+                });
+            });
         }
 
-        // Constrain horizontal position (left is the center due to translate(-50%, 0) or translate(-50%, -100%))
+        // Try different panel positions and choose one that doesn't overlap with cluster nodes
+        let left = nodePos.x;
+        let top = nodePos.y;
+        let positionBelow = true;
+        let positionSide = null;
+        
+        // Try positions in order of preference: below, above, right, left
+        const candidatePositions = [
+            { side: 'below', top: nodePos.y + nodeHeight / 2 + gap + panelHeight / 2, left: nodePos.x },
+            { side: 'above', top: nodePos.y - nodeHeight / 2 - gap - panelHeight / 2, left: nodePos.x },
+            { side: 'right', top: nodePos.y, left: nodePos.x + nodeWidth / 2 + gap + panelWidth / 2 },
+            { side: 'left', top: nodePos.y, left: nodePos.x - nodeWidth / 2 - gap - panelWidth / 2 }
+        ];
+        
+        let foundPosition = false;
+        for (const candidate of candidatePositions) {
+            const candidateRect = {
+                x: candidate.left - panelWidth / 2,
+                y: candidate.top - panelHeight / 2,
+                width: panelWidth,
+                height: panelHeight
+            };
+            
+            // Check if this position overlaps with any cluster node
+            let overlaps = false;
+            if (isInExpandedCluster) {
+                overlaps = clusterNodeRects.some(clusterRect => 
+                    rectanglesOverlap(candidateRect, clusterRect)
+                );
+            }
+            
+            // Also check if position is within canvas bounds
+            const withinBounds = 
+                candidateRect.x >= 0 &&
+                candidateRect.x + candidateRect.width <= canvasWidth &&
+                candidateRect.y >= 0 &&
+                candidateRect.y + candidateRect.height <= canvasHeight - 50; // Leave space for legend
+            
+            if (!overlaps && withinBounds) {
+                left = candidate.left;
+                top = candidate.top;
+                positionBelow = candidate.side === 'below';
+                positionSide = candidate.side === 'right' || candidate.side === 'left' ? candidate.side : null;
+                foundPosition = true;
+                break;
+            }
+        }
+        
+        // If no ideal position found, use default (below or above based on space)
+        if (!foundPosition) {
+            const spaceBelow = canvasHeight - nodePos.y;
+            const spaceAbove = nodePos.y;
+            
+            if (spaceBelow < panelHeight + gap + 50) {
+                top = nodePos.y - panelHeight / 2 - gap;
+                positionBelow = false;
+            } else {
+                top = nodePos.y + panelHeight / 2 + gap;
+                positionBelow = true;
+            }
+            left = nodePos.x;
+        }
+        
+        // Constrain horizontal position to stay within canvas
         left = Math.max(panelWidth / 2, Math.min(left, canvasWidth - panelWidth / 2));
+        // Constrain vertical position
+        top = Math.max(panelHeight / 2, Math.min(top, canvasHeight - panelHeight / 2 - 50));
 
-        setCoords({ top, left, positionBelow });
-    }, [selectedNode, canvasWidth, canvasHeight, sidePadding, bottomPadding, tickInset]);
+        setCoords({ top, left, positionBelow, positionSide });
+    }, [selectedNode, canvasWidth, canvasHeight, sidePadding, bottomPadding, tickInset, expandedStack, nodes]);
 
     // Focus textarea when editing mode is enabled
     useEffect(() => {
@@ -88,25 +216,65 @@ export default function EditNodePanel({ selectedNode, setSelectedNode, updateNod
       }
     }, [isEditingNotes]);
 
+    // Warn about unsaved changes when trying to close
+    useEffect(() => {
+      const handleClickOutside = (e) => {
+        if (selectedNode) {
+          // Don't close if clicking inside the panel, on a node (or any child), badge, or collapse button
+          if (!e.target.closest(".node-panel") && 
+              !e.target.closest(".node") && 
+              !e.target.closest(".data-stack-badge") && 
+              !e.target.closest(".data-collapse-button")) {
+            if (hasUnsavedChanges) {
+              if (window.confirm("You have unsaved changes. Are you sure you want to discard them?")) {
+                setHasUnsavedChanges(false);
+                setSelectedNode(null);
+              }
+            } else {
+              // No unsaved changes, just close
+              setSelectedNode(null);
+            }
+          }
+        }
+      };
+      if (selectedNode) {
+        document.addEventListener("click", handleClickOutside, true);
+        return () => document.removeEventListener("click", handleClickOutside, true);
+      }
+    }, [hasUnsavedChanges, selectedNode]);
+
     if (!selectedNode) return null;
 
     const handleSave = () => {
-        updateNode(selectedNode.id, {
+        // Close panel first to allow smooth animation
+        setHasUnsavedChanges(false);
+        const nodeId = selectedNode.id;
+        const updatedNode = {
             ...selectedNode,
             power: editedPower,
             alignment: editedAlignment,
             category: editedCategory,
             classification: editedClassification,
             notes: editedNotes,
-        });
+        };
         setSelectedNode(null);
+        // Update node after closing panel to trigger smooth animation
+        updateNode(nodeId, updatedNode);
     };
 
     const handleDelete = () => {
-        if (window.confirm("Are you sure you want to delete this node?")) {
-            deleteNode(selectedNode.id);
-            setSelectedNode(null);
+        if (hasUnsavedChanges) {
+            if (!window.confirm("You have unsaved changes. Are you sure you want to delete this node?")) {
+                return;
+            }
+        } else {
+            if (!window.confirm("Are you sure you want to delete this node?")) {
+                return;
+            }
         }
+        deleteNode(selectedNode.id);
+        setHasUnsavedChanges(false);
+        setSelectedNode(null);
     };
 
     return (
@@ -116,7 +284,7 @@ export default function EditNodePanel({ selectedNode, setSelectedNode, updateNod
             position: "absolute",
             top: coords.top,
             left: coords.left,
-            transform: coords.positionBelow ? "translate(-50%, 0)" : "translate(-50%, -100%)",
+            transform: "translate(-50%, -50%)",
             width: panelWidth,
             fontSize: "13px"
           }}
@@ -131,20 +299,26 @@ export default function EditNodePanel({ selectedNode, setSelectedNode, updateNod
                 min="1"
                 max="10"
                 value={editedPower}
-                onChange={(e) => editPower(Math.max(1, Math.min(10, Number(e.target.value))))}
-                style={{ margin: 0 }}
-              />
-            </label>
-            <label style={{ margin: 0, display: "flex", alignItems: "center", gap: "5px" }}>
-              Alignment:
-              <input
-                type="number"
-                min="-5"
-                max="5"
-                value={editedAlignment}
-                onChange={(e) => editAlignment(Math.max(-5, Math.min(5, Number(e.target.value))))}
-                style={{ margin: 0 }}
-              />
+              onChange={(e) => {
+                editPower(Math.max(1, Math.min(10, Number(e.target.value))));
+                setHasUnsavedChanges(true);
+              }}
+              style={{ margin: 0 }}
+            />
+          </label>
+          <label style={{ margin: 0, display: "flex", alignItems: "center", gap: "5px" }}>
+            Alignment:
+            <input
+              type="number"
+              min="-5"
+              max="5"
+              value={editedAlignment}
+              onChange={(e) => {
+                editAlignment(Math.max(-5, Math.min(5, Number(e.target.value))));
+                setHasUnsavedChanges(true);
+              }}
+              style={{ margin: 0 }}
+            />
             </label>
           </div>
           
@@ -154,7 +328,10 @@ export default function EditNodePanel({ selectedNode, setSelectedNode, updateNod
               <select 
                 id="category-select" 
                 value={editedCategory} 
-                onChange={(e) => editCategory(e.target.value)} 
+                onChange={(e) => {
+                  editCategory(e.target.value);
+                  setHasUnsavedChanges(true);
+                }} 
                 style={{ flex: 1, margin: 0 }}
               >
                 <option value="">--Choose Category--</option>
@@ -173,7 +350,10 @@ export default function EditNodePanel({ selectedNode, setSelectedNode, updateNod
               <select 
                 id="class-select" 
                 value={editedClassification} 
-                onChange={(e) => editClassification(e.target.value)} 
+                onChange={(e) => {
+                  editClassification(e.target.value);
+                  setHasUnsavedChanges(true);
+                }} 
                 style={{ flex: 1, margin: 0 }}
               >
                 <option value="">--Choose Classification--</option>
@@ -197,6 +377,7 @@ export default function EditNodePanel({ selectedNode, setSelectedNode, updateNod
                   onFocus={() => setIsEditingNotes(true)}
                   onChange={(e) => {
                     editNotes(e.target.value);
+                    setHasUnsavedChanges(true);
                     const textarea = e.target;
                     textarea.style.height = "auto";
                     const scrollHeight = textarea.scrollHeight;
@@ -226,6 +407,11 @@ export default function EditNodePanel({ selectedNode, setSelectedNode, updateNod
             </label>
           </div>
           
+          {hasUnsavedChanges && (
+            <div style={{ fontSize: "11px", color: "#DC143C", marginBottom: "4px", textAlign: "center", fontStyle: "italic" }}>
+              You have unsaved changes
+            </div>
+          )}
           <div style={{ display: "flex", gap: "5px", justifyContent: "center" }}>
             <button onClick={handleSave} className="save-btn" style={{ margin: 0 }}>Save Changes</button>
             <button onClick={handleDelete} className="del-btn" style={{ margin: 0 }}>Delete Node</button>

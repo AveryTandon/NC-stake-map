@@ -45,7 +45,7 @@ h2 {
 
 .legend {
     margin: 0px 10px 10px;
-    background: rgb(218, 220, 220);
+    background: rgb(237, 236, 236);
     border: 1px solid black;
     border-radius: 8px;
     padding: 5px;
@@ -210,4 +210,20 @@ h2 {
 .legend-shape.star {
     aspect-ratio: 1;
     clip-path: polygon(100% 50%,78.98% 57.76%,93.3% 75%,71.21% 71.21%,75% 93.3%,57.76% 78.98%,50% 100%,42.24% 78.98%,25% 93.3%,28.79% 71.21%,6.7% 75%,21.02% 57.76%,0% 50%,21.02% 42.24%,6.7% 25%,28.79% 28.79%,25% 6.7%,42.24% 21.02%,50% 0%,57.76% 21.02%,75% 6.7%,71.21% 28.79%,93.3% 25%,78.98% 42.24%);
+}
+.data-stack-badge {
+    position: absolute; 
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 15;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transition: all 0.2s ease;
 }
