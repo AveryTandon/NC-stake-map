@@ -302,6 +302,24 @@ export default function NodeLayer({ nodes, canvasWidth, canvasHeight, sidePaddin
       x: initialMouseX - (rect.left + rect.width / 2),
       y: initialMouseY - (rect.top + rect.height / 2)
     });
+    
+    // If node is in an expanded stack, immediately update position state to expanded position
+    // This prevents the glitch where position state doesn't match rendered position when dragging starts
+    const positionKey = `${node.power},${node.alignment}`;
+    const stackNodes = nodeGroups.get(positionKey) || [];
+    const isStacked = stackNodes.length > 1;
+    const isExpanded = expandedStack === positionKey;
+    
+    if (isStacked && isExpanded) {
+      const clusterCenterPos = getSnapPosition(node.power, node.alignment);
+      const nodeIndex = stackNodes.findIndex(n => n.id === nodeId);
+      const expandedPos = getExpandedPosition(node, clusterCenterPos, nodeIndex, stackNodes.length);
+      // Update position state immediately to match rendered position
+      setPositions(prev => ({
+        ...prev,
+        [nodeId]: expandedPos
+      }));
+    }
   };
 
   const handleMouseMove = useCallback((e) => {
@@ -324,22 +342,8 @@ export default function NodeLayer({ nodes, canvasWidth, canvasHeight, sidePaddin
           // Hide edit panel during drag
           setSelectedNode(null);
           
-          // If dragging from an expanded stack, initialize position to current expanded position
-          const positionKey = `${node.power},${node.alignment}`;
-          const stackNodes = nodeGroups.get(positionKey) || [];
-          const isStacked = stackNodes.length > 1;
-          const isExpanded = expandedStack === positionKey;
-          
-          if (isStacked && isExpanded) {
-            const clusterCenterPos = getSnapPosition(node.power, node.alignment);
-            const nodeIndex = stackNodes.findIndex(n => n.id === nodeId);
-            const expandedPos = getExpandedPosition(node, clusterCenterPos, nodeIndex, stackNodes.length);
-            // Update position to expanded position so drag starts from correct location
-            setPositions(prev => ({
-              ...prev,
-              [nodeId]: expandedPos
-            }));
-          }
+          // Position state should already be updated to expanded position in handleMouseDown
+          // No need to update it again here
         }
       } else {
         // Not enough movement yet, don't start dragging
@@ -394,7 +398,13 @@ export default function NodeLayer({ nodes, canvasWidth, canvasHeight, sidePaddin
       // Capture nodeId before resetting state
       const nodeId = draggingNode;
       
-      // Reset drag state first
+      // Collapse any expanded stacks immediately (before snap animation)
+      // This ensures the stack is collapsed before the edit panel appears
+      if (expandedStack) {
+        setExpandedStack(null);
+      }
+      
+      // Reset drag state
       setIsDragging(false);
       setDraggingNode(null);
       
@@ -407,10 +417,11 @@ export default function NodeLayer({ nodes, canvasWidth, canvasHeight, sidePaddin
         [nodeId]: snapPos
       }));
       
-      // Wait for animation to complete, then update database
+      // Wait for animation to complete, then update database and show edit panel
       const animationDuration = 300; // milliseconds - should match CSS transition duration
       setTimeout(() => {
         // Create updated node with new position data
+        // Use snapPos which is where the node should be after animation
         const updatedNode = {
           ...node,
           alignment: roundedAlignment,
@@ -424,18 +435,14 @@ export default function NodeLayer({ nodes, canvasWidth, canvasHeight, sidePaddin
 
         // Always open/edit panel after drag completes with new ratings
         // If panel was open before drag, restore it; otherwise open it for the first time
+        // Use snapPos to ensure panel appears at the final position where node is now
         const wasSelected = wasSelectedBeforeDragRef.current;
         setSelectedNode({
           ...updatedNode,
-          _screenX: updatedNode._screenX,
-          _screenY: updatedNode._screenY
+          _screenX: snapPos.x,
+          _screenY: snapPos.y
         });
         wasSelectedBeforeDragRef.current = null;
-
-        // Collapse any expanded stacks after dragging
-        if (expandedStack) {
-          setExpandedStack(null);
-        }
         
         // Mark that we just finished dragging - the useEffect will handle recalculation
         // when nodes array updates from Firestore
@@ -485,6 +492,66 @@ export default function NodeLayer({ nodes, canvasWidth, canvasHeight, sidePaddin
       }
     }
   }, [selectedNode, nodeGroups]);
+
+  // Track previous expandedStack to detect when a stack collapses
+  const prevExpandedStackRef = useRef(expandedStack);
+  
+  // Reset node positions to base positions when a stack collapses
+  useEffect(() => {
+    // Detect when a stack collapses (expandedStack goes from a value to null)
+    const wasExpanded = prevExpandedStackRef.current !== null;
+    const isNowCollapsed = expandedStack === null;
+    const stackJustCollapsed = wasExpanded && isNowCollapsed;
+    
+    // Only reset positions if a stack just collapsed and we're not dragging/snapping
+    // Also skip if a node is currently snapping (it will be handled after animation)
+    if (stackJustCollapsed && !isDragging && !draggingNode && !snappingNode) {
+      // Get the position key of the stack that just collapsed (from previous value)
+      const collapsedStackKey = prevExpandedStackRef.current;
+      
+      // Find all nodes in that stack and reset their positions to base
+      const stackNodes = nodes.filter(n => {
+        const key = `${n.power},${n.alignment}`;
+        return key === collapsedStackKey;
+      });
+      
+      if (stackNodes.length > 0) {
+        // Calculate base positions for nodes in the collapsed stack
+        const updatedPositions = { ...positions };
+        let needsUpdate = false;
+        
+        stackNodes.forEach(node => {
+          const basePos = getNodePosition(
+            node,
+            [],
+            canvasWidth,
+            canvasHeight,
+            sidePadding,
+            bottomPadding,
+            tickInset,
+            DEFAULT_WIDTH,
+            DEFAULT_HEIGHT,
+            []
+          );
+          
+          const currentPos = positions[node.id];
+          if (!currentPos || Math.abs(basePos.x - currentPos.x) > 1 || Math.abs(basePos.y - currentPos.y) > 1) {
+            updatedPositions[node.id] = basePos;
+            needsUpdate = true;
+          }
+        });
+        
+        if (needsUpdate) {
+          setPositions(updatedPositions);
+          // Update basePositionsRef for consistency
+          basePositionsRef.current = { ...basePositionsRef.current, ...updatedPositions };
+        }
+      }
+    }
+    
+    // Update the ref after processing
+    prevExpandedStackRef.current = expandedStack;
+  }, [expandedStack, isDragging, draggingNode, snappingNode, nodes, positions, canvasWidth, canvasHeight, sidePadding, bottomPadding, tickInset]);
 
   // Collapse expanded stack when clicking outside it
   useEffect(() => {
@@ -602,13 +669,13 @@ export default function NodeLayer({ nodes, canvasWidth, canvasHeight, sidePaddin
         const clusterCenterPos = isStacked ? getSnapPosition(node.power, node.alignment) : basePos;
         
         // Use expanded position if stack is expanded, otherwise use base position
-        // BUT: if this node is being dragged, use the drag position directly (don't calculate expanded position)
+        // BUT: if this node is being dragged or snapping, use the position from state directly
         let displayPos = basePos;
-        if (isStacked && isExpanded && draggingNode !== node.id) {
+        if (isStacked && isExpanded && draggingNode !== node.id && snappingNode !== node.id) {
           const nodeIndex = stackNodes.findIndex(n => n.id === node.id);
           displayPos = getExpandedPosition(node, clusterCenterPos, nodeIndex, stackNodes.length);
-        } else if (draggingNode === node.id) {
-          // Node is being dragged - use the position from state directly (follows mouse)
+        } else if (draggingNode === node.id || snappingNode === node.id) {
+          // Node is being dragged or snapping - use the position from state directly
           displayPos = basePos;
         }
         
