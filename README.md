@@ -141,7 +141,7 @@ npm run preview
 - **Map Management**: Enable users to save power maps to their profile and create multiple maps. Add ability to switch between maps, duplicate maps, and organize maps into folders.
 - **Node Relationships**: Add ability to create and visualize relationships/connections between nodes (e.g., alliances, conflicts, dependencies) with visual connectors on the canvas.
 
-#### Possible Additional Feature
+### Possible Additional Features
 - **Export/Import**: Export maps as images (PNG/SVG) or JSON data for backup and sharing
 - **Search & Filter**: Search nodes by label, category, or classification; filter nodes by attributes
 - **Undo/Redo**: Implement undo/redo functionality for node operations
